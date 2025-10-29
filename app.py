@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
-st.set_page_config(page_title="Secure Heart Rate Monitor", page_icon="❤️", layout="wide")
+st.set_page_config(page_title="Secure Heart Rate Monitor by Yunisa Sunday", page_icon="❤️", layout="wide")
 
 # =========================
 # ENCRYPTION FUNCTIONS
@@ -358,7 +358,8 @@ def logout():
 # =========================
 
 if not st.session_state.logged_in:
-    st.title("🔐 Secure Heart Rate Monitoring System")
+    st.title("🔐 Secure Heart Rate Monitor by Yunisa Sunday")
+    st.markdown("### EBSU/PG/PhD/2021/10930")
     st.markdown("### Advanced Medical IoT Platform with Hybrid Encryption")
     
     tab1, tab2 = st.tabs(["Login", "Register"])
