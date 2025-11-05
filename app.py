@@ -360,7 +360,7 @@ def logout():
 if not st.session_state.logged_in:
     st.title("🔐 Secure Heart Rate Monitor by Yunisa Sunday")
     st.markdown("### EBSU/PG/PhD/2021/10930")
-    st.markdown("### Advanced Medical IoT Platform with Hybrid Encryption")
+    st.markdown("### Advanced Medical IoT Platform with Hybrid Encryption and Blockchain-Based Data Protection")
     
     tab1, tab2 = st.tabs(["Login", "Register"])
     
@@ -891,4 +891,5 @@ st.markdown("""
     <small>🔒 Secured with Hybrid Encryption (AES-GCM + ECC)<br>
     ⚠️ For educational purposes only. Not a medical device. Consult healthcare professionals for medical advice.</small>
 </div>
+
 """, unsafe_allow_html=True)
