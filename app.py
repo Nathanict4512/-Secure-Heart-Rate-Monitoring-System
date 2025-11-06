@@ -534,7 +534,7 @@ elif st.session_state.page == "monitor":
         
         if st.session_state.running:
             face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-            cap = cv2.VideoCapture(0)
+            cap = st.camera_input()
             
             if not cap.isOpened():
                 status_placeholder.error("❌ Could not access webcam")
@@ -893,3 +893,4 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
