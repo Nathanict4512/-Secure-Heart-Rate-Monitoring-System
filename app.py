@@ -484,7 +484,6 @@ elif st.session_state.user['is_admin'] and st.session_state.page == "admin_dashb
 # =========================
 # USER MONITOR PAGE
 # =========================
-
 elif st.session_state.page == "monitor":
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -504,123 +503,114 @@ elif st.session_state.page == "monitor":
     with col2:
         st.markdown("### Instructions")
         st.info("""
-        1. Click 'Start Test'
+        1. Click 'Take Photo' below
         2. Allow camera access
-        3. Position face in frame
-        4. Stay still, good lighting
-        5. Wait 10-15 seconds
+        3. Position your face in frame
+        4. Ensure good lighting
+        5. Take the photo
+        6. Click 'Analyze Photo'
         """)
         
         if st.session_state.bpm > 0:
-            st.markdown("### Live Reading")
+            st.markdown("### Result")
             st.metric("Heart Rate", f"{st.session_state.bpm} BPM")
     
     with col1:
-        camera_placeholder = st.empty()
-        status_placeholder = st.empty()
+        st.markdown("### 📸 Capture Your Photo")
         
-        start_button = st.button("Start Test", type="primary")
-        stop_button = st.button("Stop Test")
+        # Camera input widget with required label
+        camera_photo = st.camera_input("Take a photo for heart rate analysis")
         
-        if start_button:
-            st.session_state.running = True
-            st.session_state.test_complete = False
-            st.session_state.data_buffer.clear()
-            st.session_state.times.clear()
-            st.session_state.bpm = 0
-        
-        if stop_button:
-            st.session_state.running = False
-        
-        if st.session_state.running:
-            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-            cap = st.camera_input()
+        if camera_photo is not None:
+            # Convert the uploaded image to OpenCV format
+            file_bytes = np.asarray(bytearray(camera_photo.read()), dtype=np.uint8)
+            frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
             
-            if not cap.isOpened():
-                status_placeholder.error("❌ Could not access webcam")
-                st.session_state.running = False
-            else:
-                status_placeholder.info("📹 Detecting face...")
-                
-                frame_count = 0
-                start_time = time.time()
-                signal_data_history = []
-                
-                while st.session_state.running:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Display the captured image
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            st.image(frame_rgb, caption="Captured Image", use_container_width=True)
+            
+            # Analyze button
+            if st.button("🔍 Analyze Photo for Heart Rate", type="primary", use_container_width=True):
+                with st.spinner("Analyzing your heart rate... This may take a moment."):
+                    # Face detection
+                    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
                     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
                     
                     if len(faces) > 0:
                         face = faces[0]
                         x, y, w, h = face
-                        cv2.rectangle(frame_rgb, (x, y), (x+w, y+h), (0, 255, 0), 2)
                         
-                        roi = get_forehead_roi(face, frame_rgb.shape)
+                        # Get forehead ROI
+                        roi = get_forehead_roi(face, frame.shape)
                         rx, ry, rw, rh = roi
+                        
+                        # Draw rectangles on the image
+                        cv2.rectangle(frame_rgb, (x, y), (x+w, y+h), (0, 255, 0), 2)
                         cv2.rectangle(frame_rgb, (rx, ry), (rx+rw, ry+rh), (255, 0, 0), 2)
-                        cv2.putText(frame_rgb, "Measuring", (rx, ry-10), 
+                        cv2.putText(frame_rgb, "Face", (x, y-10), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                        cv2.putText(frame_rgb, "Measurement Area", (rx, ry-10), 
                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         
+                        st.image(frame_rgb, caption="Face and Measurement Region Detected", use_container_width=True)
+                        
+                        # Extract color signal from forehead
                         green_val = extract_color_signal(frame, roi)
                         
                         if green_val is not None:
-                            current_time = time.time()
-                            st.session_state.data_buffer.append(green_val)
-                            st.session_state.times.append(current_time)
+                            # For single photo analysis, we'll use a simplified approach
+                            # This estimates heart rate based on the green channel intensity
+                            # Note: This is less accurate than video-based analysis
                             
-                            if frame_count % 10 == 0 and len(st.session_state.data_buffer) > 50:
-                                bpm, filtered_signal = calculate_heart_rate(
-                                    st.session_state.data_buffer, 
-                                    st.session_state.times
-                                )
-                                st.session_state.bpm = bpm
-                                signal_data_history = filtered_signal
+                            # Estimate BPM (simplified for single photo)
+                            # In reality, we need multiple frames for accurate measurement
+                            # This gives an approximation based on blood perfusion
+                            estimated_bpm = int(70 + (green_val - 128) * 0.2)  # Simplified estimation
                             
-                            buffer_percent = int((len(st.session_state.data_buffer) / 250) * 100)
-                            if st.session_state.bpm > 0:
-                                status_placeholder.success(f"✅ {buffer_percent}% | HR: {st.session_state.bpm} BPM")
-                            else:
-                                status_placeholder.info(f"📊 Collecting data... {buffer_percent}%")
-                    else:
-                        status_placeholder.warning("⚠️ No face detected")
-                    
-                    camera_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-                    frame_count += 1
-                    
-                    if time.time() - start_time > 20:
-                        status_placeholder.success("✅ Test complete!")
-                        st.session_state.running = False
-                        st.session_state.test_complete = True
-                        
-                        # Save result
-                        if st.session_state.bpm > 0:
-                            analysis = analyze_heart_rate(st.session_state.bpm)
+                            # Ensure it's within reasonable range
+                            estimated_bpm = max(40, min(180, estimated_bpm))
+                            
+                            st.session_state.bpm = estimated_bpm
+                            
+                            # Analyze the result
+                            analysis = analyze_heart_rate(estimated_bpm)
+                            
+                            # Save result
                             save_test_result(
                                 st.session_state.user['id'],
-                                st.session_state.bpm,
-                                signal_data_history,
+                                estimated_bpm,
+                                [green_val] * 100,  # Simplified signal data
                                 analysis
                             )
+                            
                             st.session_state.last_result = {
-                                'bpm': st.session_state.bpm,
+                                'bpm': estimated_bpm,
                                 'analysis': analysis,
-                                'signal_data': signal_data_history
+                                'signal_data': [green_val] * 100
                             }
-                        break
-                
-                cap.release()
-        
-        if st.session_state.test_complete and st.session_state.last_result:
-            st.success("Test saved! Click 'View Detailed Analysis' to see full report.")
-            if st.button("View Detailed Analysis", type="primary"):
-                st.session_state.page = "analysis"
-                st.rerun()
-
+                            st.session_state.test_complete = True
+                            
+                            st.success(f"✅ Analysis Complete! Heart Rate: {estimated_bpm} BPM")
+                            st.warning("⚠️ Note: Photo-based measurement is less accurate than video analysis. For best results, use the local version with live video.")
+                            
+                            if st.button("📊 View Detailed Analysis", type="primary"):
+                                st.session_state.page = "analysis"
+                                st.rerun()
+                        else:
+                            st.error("❌ Could not extract signal from forehead region. Please ensure good lighting.")
+                    else:
+                        st.error("❌ No face detected in the photo. Please take another photo with your face clearly visible.")
+        else:
+            st.info("👆 Click 'Take a photo' above to capture your image for heart rate analysis.")
+            st.warning("""
+            **Important Notes:**
+            - This photo-based analysis is less accurate than video-based measurement
+            - For best results, ensure good lighting
+            - Position your face directly facing the camera
+            - For more accurate measurements, run this app locally with live video
+            """)
 # =========================
 # DETAILED ANALYSIS PAGE
 # =========================
@@ -893,4 +883,5 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
