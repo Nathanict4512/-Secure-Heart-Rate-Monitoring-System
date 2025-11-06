@@ -484,6 +484,8 @@ elif st.session_state.user['is_admin'] and st.session_state.page == "admin_dashb
 # =========================
 # USER MONITOR PAGE
 # =========================
+# Replace the entire "USER MONITOR PAGE" section with this improved version:
+
 elif st.session_state.page == "monitor":
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -654,14 +656,97 @@ elif st.session_state.page == "monitor":
                                     # Display result
                                     st.balloons()
                                     
-                                    col_a, col_b = st.columns(2)
-                                    with col_a:
-                                        st.success(f"### ✅ Heart Rate: {estimated_bpm} BPM")
-                                        st.markdown(f"**Status:** {analysis['category']}")
-                                    with col_b:
-                                        if st.button("📊 View Detailed Analysis", type="primary", use_container_width=True):
-                                            st.session_state.page = "analysis"
-                                            st.rerun()
+                                    st.success(f"### ✅ Heart Rate: {estimated_bpm} BPM")
+                                    st.markdown(f"**Status:** {analysis['category']}")
+                                    
+                                    # Show mini charts immediately
+                                    st.markdown("---")
+                                    st.subheader("📊 Quick Analysis")
+                                    
+                                    col_chart1, col_chart2 = st.columns(2)
+                                    
+                                    with col_chart1:
+                                        # Mini gauge chart
+                                        fig_mini_gauge = go.Figure(go.Indicator(
+                                            mode = "gauge+number",
+                                            value = estimated_bpm,
+                                            domain = {'x': [0, 1], 'y': [0, 1]},
+                                            title = {'text': "Heart Rate (BPM)"},
+                                            gauge = {
+                                                'axis': {'range': [None, 180]},
+                                                'bar': {'color': "darkblue"},
+                                                'steps': [
+                                                    {'range': [0, 60], 'color': "lightgray"},
+                                                    {'range': [60, 100], 'color': "lightgreen"},
+                                                    {'range': [100, 180], 'color': "lightyellow"}
+                                                ],
+                                                'threshold': {
+                                                    'line': {'color': "red", 'width': 4},
+                                                    'thickness': 0.75,
+                                                    'value': 100
+                                                }
+                                            }
+                                        ))
+                                        fig_mini_gauge.update_layout(height=300)
+                                        st.plotly_chart(fig_mini_gauge, use_container_width=True)
+                                    
+                                    with col_chart2:
+                                        # Heart rate zone chart
+                                        zones_data = pd.DataFrame({
+                                            'Zone': ['Very Low', 'Normal', 'Elevated', 'Very High'],
+                                            'Range': [60, 40, 20, 60],
+                                            'Color': ['#FF6B6B', '#51CF66', '#FFD93D', '#FF6B6B']
+                                        })
+                                        
+                                        fig_zones = go.Figure(data=[go.Bar(
+                                            x=zones_data['Zone'],
+                                            y=zones_data['Range'],
+                                            marker_color=zones_data['Color'],
+                                            text=zones_data['Range'],
+                                            textposition='auto',
+                                        )])
+                                        
+                                        fig_zones.add_hline(y=estimated_bpm, line_dash="dash", 
+                                                           line_color="red", annotation_text="Your HR")
+                                        
+                                        fig_zones.update_layout(
+                                            title="Heart Rate Zones",
+                                            xaxis_title="Zone",
+                                            yaxis_title="BPM Range",
+                                            showlegend=False,
+                                            height=300
+                                        )
+                                        st.plotly_chart(fig_zones, use_container_width=True)
+                                    
+                                    # Analysis details
+                                    st.markdown("---")
+                                    col_analysis1, col_analysis2 = st.columns(2)
+                                    
+                                    with col_analysis1:
+                                        st.markdown("### 📝 Analysis")
+                                        st.markdown(f"**{analysis['description']}**")
+                                        
+                                        st.markdown("### ✅ Recommendations")
+                                        for rec in analysis['recommendations']:
+                                            st.markdown(f"- {rec}")
+                                    
+                                    with col_analysis2:
+                                        st.markdown("### 📊 Heart Rate Classification")
+                                        st.markdown("""
+                                        - **< 60 BPM**: Bradycardia (low)
+                                        - **60-100 BPM**: Normal resting
+                                        - **100-120 BPM**: Elevated
+                                        - **> 120 BPM**: Tachycardia (high)
+                                        """)
+                                        
+                                        st.markdown("### 🔒 Security")
+                                        st.info("This result is encrypted with AES-GCM and stored securely.")
+                                    
+                                    # Link to full analysis page
+                                    st.markdown("---")
+                                    if st.button("📊 View Full Detailed Analysis Page", type="primary", use_container_width=True, key="view_full_analysis"):
+                                        st.session_state.page = "analysis"
+                                        st.rerun()
                                     
                                     st.warning("""
                                     **⚠️ Important Note:** 
@@ -998,6 +1083,7 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
 
 
 
