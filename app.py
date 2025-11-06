@@ -476,15 +476,14 @@ elif st.session_state.user['is_admin'] and st.session_state.page == "admin_dashb
                           labels={'bpm': 'Heart Rate (BPM)', 'count': 'Number of Tests'})
         fig.add_vline(x=60, line_dash="dash", line_color="green", annotation_text="Normal Min")
         fig.add_vline(x=100, line_dash="dash", line_color="green", annotation_text="Normal Max")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="admin_histogram_main")
         
     else:
         st.info("No test results yet. Users need to complete heart rate tests first.")
 
 # =========================
-# USER MONITOR PAGE
+# USER MONITOR PAGE (PHOTO CAPTURE VERSION)
 # =========================
-# Replace the entire "USER MONITOR PAGE" section with this improved version:
 
 elif st.session_state.page == "monitor":
     col1, col2 = st.columns([3, 1])
@@ -611,7 +610,6 @@ elif st.session_state.page == "monitor":
                                     green_std = np.std(roi_frame[:, :, 1])
                                     
                                     # Improved estimation using multiple factors
-                                    # This is still simplified but better than single value
                                     base_hr = 70  # Average resting heart rate
                                     
                                     # Adjust based on green channel intensity and variance
@@ -688,7 +686,7 @@ elif st.session_state.page == "monitor":
                                             }
                                         ))
                                         fig_mini_gauge.update_layout(height=300)
-                                        st.plotly_chart(fig_mini_gauge, use_container_width=True)
+                                        st.plotly_chart(fig_mini_gauge, use_container_width=True, key="photo_gauge_chart")
                                     
                                     with col_chart2:
                                         # Heart rate zone chart
@@ -716,7 +714,7 @@ elif st.session_state.page == "monitor":
                                             showlegend=False,
                                             height=300
                                         )
-                                        st.plotly_chart(fig_zones, use_container_width=True)
+                                        st.plotly_chart(fig_zones, use_container_width=True, key="photo_zones_chart")
                                     
                                     # Analysis details
                                     st.markdown("---")
@@ -811,6 +809,7 @@ elif st.session_state.page == "monitor":
             - Forehead clearly visible ✓
             - No shadows ✓
             """)
+
 # =========================
 # DETAILED ANALYSIS PAGE
 # =========================
@@ -865,7 +864,7 @@ elif st.session_state.page == "analysis":
                     }
                 }
             ))
-            st.plotly_chart(fig_gauge, use_container_width=True)
+            st.plotly_chart(fig_gauge, use_container_width=True, key="analysis_gauge_main")
         
         with col2:
             # Heart rate zone chart
@@ -892,7 +891,7 @@ elif st.session_state.page == "analysis":
                 yaxis_title="BPM Range",
                 showlegend=False
             )
-            st.plotly_chart(fig_zones, use_container_width=True)
+            st.plotly_chart(fig_zones, use_container_width=True, key="analysis_zones_main")
         
         # Signal visualization
         if result['signal_data']:
@@ -905,7 +904,7 @@ elif st.session_state.page == "analysis":
             fig_signal = px.line(signal_df, x='Sample', y='Amplitude',
                                title='Filtered Heart Rate Signal',
                                labels={'Sample': 'Time (samples)', 'Amplitude': 'Signal Amplitude'})
-            st.plotly_chart(fig_signal, use_container_width=True)
+            st.plotly_chart(fig_signal, use_container_width=True, key="analysis_signal_main")
         
         st.markdown("---")
         
@@ -1000,7 +999,7 @@ elif st.session_state.page == "results":
             yaxis_title="BPM",
             hovermode='x unified'
         )
-        st.plotly_chart(fig_trend, use_container_width=True)
+        st.plotly_chart(fig_trend, use_container_width=True, key="history_trend_main")
         
         st.markdown("---")
         
@@ -1028,7 +1027,7 @@ elif st.session_state.page == "results":
                     for rec in result['analysis']['recommendations']:
                         st.markdown(f"- {rec}")
                 
-                # Mini gauge for this test
+                # Mini gauge for this test with unique key
                 fig_mini = go.Figure(go.Indicator(
                     mode = "gauge+number",
                     value = result['bpm'],
@@ -1044,7 +1043,7 @@ elif st.session_state.page == "results":
                     }
                 ))
                 fig_mini.update_layout(height=200)
-                st.plotly_chart(fig_mini, use_container_width=True)
+                st.plotly_chart(fig_mini, use_container_width=True, key=f"history_gauge_{result['test_id']}")
         
         # Export option
         st.markdown("---")
@@ -1081,9 +1080,4 @@ st.markdown("""
     <small>🔒 Secured with Hybrid Encryption (AES-GCM + ECC)<br>
     ⚠️ For educational purposes only. Not a medical device. Consult healthcare professionals for medical advice.</small>
 </div>
-
 """, unsafe_allow_html=True)
-
-
-
-
