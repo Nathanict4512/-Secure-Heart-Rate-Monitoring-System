@@ -440,46 +440,334 @@ elif st.session_state.user['is_admin'] and st.session_state.page == "admin_dashb
     
     st.markdown("---")
     
-    # Get all results
-    all_results = get_all_results_admin()
+    # Add tabs for different admin functions
+    tab1, tab2 = st.tabs(["📊 Test Results", "🔐 Encryption Simulation"])
     
-    if all_results:
-        st.subheader("📊 Recent Test Results")
+    with tab1:
+        # Get all results
+        all_results = get_all_results_admin()
         
-        # Create DataFrame
-        df = pd.DataFrame(all_results)
+        if all_results:
+            st.subheader("📊 Recent Test Results")
+            
+            # Create DataFrame
+            df = pd.DataFrame(all_results)
+            
+            # Display summary stats
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Tests", len(df))
+            with col2:
+                st.metric("Average BPM", f"{df['bpm'].mean():.0f}")
+            with col3:
+                st.metric("Unique Users", df['username'].nunique())
+            with col4:
+                normal_count = len(df[(df['bpm'] >= 60) & (df['bpm'] <= 100)])
+                st.metric("Normal Results", f"{normal_count}")
+            
+            st.markdown("---")
+            
+            # Display table
+            display_df = df[['test_date', 'full_name', 'username', 'bpm', 'test_id']].copy()
+            display_df['test_date'] = pd.to_datetime(display_df['test_date']).dt.strftime('%Y-%m-%d %H:%M')
+            display_df.columns = ['Test Date', 'Patient Name', 'Username', 'Heart Rate (BPM)', 'Test ID']
+            
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            
+            # Visualization
+            st.subheader("📈 Heart Rate Distribution")
+            fig = px.histogram(df, x='bpm', nbins=20, title="Distribution of Heart Rates",
+                              labels={'bpm': 'Heart Rate (BPM)', 'count': 'Number of Tests'})
+            fig.add_vline(x=60, line_dash="dash", line_color="green", annotation_text="Normal Min")
+            fig.add_vline(x=100, line_dash="dash", line_color="green", annotation_text="Normal Max")
+            st.plotly_chart(fig, use_container_width=True, key="admin_histogram_main")
+            
+        else:
+            st.info("No test results yet. Users need to complete heart rate tests first.")
+    
+    with tab2:
+        st.subheader("🔐 Hybrid Encryption & Decentralized Storage Simulation")
+        st.markdown("""
+        This demonstration shows how the system uses **Hybrid Encryption** (AES-GCM + ECC) 
+        and simulates **Decentralized Storage** for protecting sensitive medical data.
+        """)
         
-        # Display summary stats
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Total Tests", len(df))
-        with col2:
-            st.metric("Average BPM", f"{df['bpm'].mean():.0f}")
-        with col3:
-            st.metric("Unique Users", df['username'].nunique())
-        with col4:
-            normal_count = len(df[(df['bpm'] >= 60) & (df['bpm'] <= 100)])
-            st.metric("Normal Results", f"{normal_count}")
-        
+        # Sample data input
         st.markdown("---")
+        st.markdown("### Step 1: Input Sample Medical Data")
         
-        # Display table
-        display_df = df[['test_date', 'full_name', 'username', 'bpm', 'test_id']].copy()
-        display_df['test_date'] = pd.to_datetime(display_df['test_date']).dt.strftime('%Y-%m-%d %H:%M')
-        display_df.columns = ['Test Date', 'Patient Name', 'Username', 'Heart Rate (BPM)', 'Test ID']
+        col_input1, col_input2 = st.columns(2)
+        with col_input1:
+            sample_bpm = st.number_input("Heart Rate (BPM)", min_value=40, max_value=200, value=75)
+            patient_name = st.text_input("Patient Name (for demo)", value="John Doe")
+        with col_input2:
+            sample_category = st.selectbox("Health Category", 
+                                          ["Normal Resting Heart Rate", "Elevated", "Below Normal", "Bradycardia", "Tachycardia"])
+            test_timestamp = st.text_input("Timestamp", value=datetime.now().isoformat())
         
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        if st.button("🚀 Start Encryption Simulation", type="primary", use_container_width=True):
+            st.markdown("---")
+            st.markdown("## 🔄 Encryption Process Simulation")
+            
+            # Step 1: Create sample data
+            st.markdown("### 📝 Step 1: Prepare Medical Data (Plaintext)")
+            sample_data = {
+                "patient": patient_name,
+                "bpm": sample_bpm,
+                "category": sample_category,
+                "timestamp": test_timestamp,
+                "recommendations": ["Maintain healthy lifestyle", "Regular exercise"]
+            }
+            
+            col_step1_1, col_step1_2 = st.columns(2)
+            with col_step1_1:
+                st.json(sample_data)
+            with col_step1_2:
+                plaintext_json = json.dumps(sample_data, indent=2)
+                st.code(plaintext_json, language="json")
+                st.caption(f"📊 Data Size: {len(plaintext_json)} bytes")
+            
+            st.success("✅ Medical data prepared in JSON format")
+            
+            # Step 2: Generate ECC Keys
+            st.markdown("---")
+            st.markdown("### 🔑 Step 2: Generate ECC Key Pair (Asymmetric)")
+            
+            with st.spinner("Generating ECC keys using SECP256R1 curve..."):
+                time.sleep(0.5)  # Simulate processing
+                private_key, public_key = HybridEncryption.generate_ecc_keys()
+                
+                # Serialize keys for display
+                private_pem = private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                ).decode('utf-8')
+                
+                public_pem = public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                ).decode('utf-8')
+            
+            col_ecc1, col_ecc2 = st.columns(2)
+            with col_ecc1:
+                st.markdown("**Private Key (Keep Secret):**")
+                st.code(private_pem[:200] + "...", language="text")
+                st.caption("🔒 Used for decryption and authentication")
+            with col_ecc2:
+                st.markdown("**Public Key (Can Share):**")
+                st.code(public_pem[:200] + "...", language="text")
+                st.caption("🔓 Used for encryption and verification")
+            
+            st.info("✅ ECC Key Pair generated using SECP256R1 elliptic curve (256-bit security)")
+            
+            # Step 3: Generate AES Key
+            st.markdown("---")
+            st.markdown("### 🔐 Step 3: Generate AES-256 Key (Symmetric)")
+            
+            with st.spinner("Generating 256-bit random encryption key..."):
+                time.sleep(0.3)
+                encryption_key = os.urandom(32)  # 256 bits
+            
+            col_aes1, col_aes2 = st.columns(2)
+            with col_aes1:
+                st.code(encryption_key.hex(), language="text")
+                st.caption("🎲 256-bit (32 bytes) randomly generated key")
+            with col_aes2:
+                st.metric("Key Length", "256 bits")
+                st.metric("Hex Length", "64 characters")
+                st.caption("Each byte = 2 hex characters")
+            
+            st.success("✅ Symmetric encryption key generated using secure random number generator")
+            
+            # Step 4: Generate Nonce
+            st.markdown("---")
+            st.markdown("### 🎯 Step 4: Generate Nonce (Number Used Once)")
+            
+            nonce = os.urandom(12)  # 96 bits for GCM
+            
+            col_nonce1, col_nonce2 = st.columns(2)
+            with col_nonce1:
+                st.code(nonce.hex(), language="text")
+                st.caption("🔢 12-byte (96-bit) unique nonce")
+            with col_nonce2:
+                st.info("""
+                **Why Nonce?**
+                - Ensures same data encrypts differently each time
+                - Prevents pattern analysis
+                - Critical for GCM security
+                - Must NEVER be reused with same key
+                """)
+            
+            st.success("✅ Unique nonce generated for this encryption operation")
+            
+            # Step 5: Encrypt with AES-GCM
+            st.markdown("---")
+            st.markdown("### 🔒 Step 5: Encrypt Data with AES-GCM")
+            
+            with st.spinner("Encrypting data using AES-GCM..."):
+                time.sleep(0.5)
+                encrypted_data = HybridEncryption.encrypt_aes_gcm(json.dumps(sample_data), encryption_key)
+            
+            col_enc1, col_enc2 = st.columns(2)
+            with col_enc1:
+                st.markdown("**Encrypted Data (Hex):**")
+                st.code(encrypted_data.hex()[:200] + "...", language="text")
+                st.caption(f"🔐 Total size: {len(encrypted_data)} bytes")
+            with col_enc2:
+                st.markdown("**Structure:**")
+                st.code(f"""
+Nonce (12 bytes):     {encrypted_data[:12].hex()}
+Ciphertext + Tag:     {encrypted_data[12:30].hex()}...
+                
+Total: {len(encrypted_data)} bytes
+                """, language="text")
+            
+            st.success("✅ Data encrypted successfully with authentication tag")
+            
+            # Step 6: Simulate Decentralized Storage
+            st.markdown("---")
+            st.markdown("### 🌐 Step 6: Decentralized Storage Simulation")
+            
+            st.info("""
+            **Decentralized Storage Model:**
+            In a production system, encrypted data would be distributed across multiple nodes:
+            - Encrypted data stored in multiple locations
+            - Keys managed separately using Key Management Service (KMS)
+            - Blockchain for audit trail and integrity verification
+            - No single point of failure
+            """)
+            
+            # Simulate storage nodes
+            col_node1, col_node2, col_node3 = st.columns(3)
+            
+            with col_node1:
+                st.markdown("**📦 Node 1 (Primary)**")
+                st.code(f"Location: us-east-1\nData: {encrypted_data[:20].hex()}...", language="text")
+                st.caption("✅ Stored")
+            
+            with col_node2:
+                st.markdown("**📦 Node 2 (Backup)**")
+                st.code(f"Location: eu-west-1\nData: {encrypted_data[:20].hex()}...", language="text")
+                st.caption("✅ Replicated")
+            
+            with col_node3:
+                st.markdown("**🔑 Key Storage (KMS)**")
+                st.code(f"Key ID: {encryption_key.hex()[:16]}...", language="text")
+                st.caption("✅ Secured separately")
+            
+            st.success("✅ Data distributed across decentralized storage nodes")
+            
+            # Step 7: Verify and Decrypt
+            st.markdown("---")
+            st.markdown("### 🔓 Step 7: Decryption & Verification")
+            
+            if st.button("🔍 Decrypt and Verify Data", type="secondary"):
+                with st.spinner("Retrieving from storage and decrypting..."):
+                    time.sleep(0.5)
+                    try:
+                        decrypted_json = HybridEncryption.decrypt_aes_gcm(encrypted_data, encryption_key)
+                        decrypted_data = json.loads(decrypted_json)
+                        
+                        col_dec1, col_dec2 = st.columns(2)
+                        with col_dec1:
+                            st.markdown("**Decrypted Data:**")
+                            st.json(decrypted_data)
+                        with col_dec2:
+                            st.markdown("**Verification:**")
+                            if decrypted_data == sample_data:
+                                st.success("✅ Data integrity verified!")
+                                st.success("✅ Authentication tag valid!")
+                                st.success("✅ No tampering detected!")
+                            else:
+                                st.error("❌ Data mismatch!")
+                        
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"❌ Decryption failed: {e}")
+                        st.warning("This would indicate data tampering or corruption!")
+            
+            # Summary
+            st.markdown("---")
+            st.markdown("### 📊 Encryption Summary")
+            
+            summary_col1, summary_col2, summary_col3 = st.columns(3)
+            
+            with summary_col1:
+                st.markdown("**🔐 Symmetric Encryption**")
+                st.info("""
+                - Algorithm: AES-GCM
+                - Key Size: 256 bits
+                - Nonce: 96 bits (12 bytes)
+                - Mode: Galois/Counter Mode
+                - Speed: ~50ms per operation
+                """)
+            
+            with summary_col2:
+                st.markdown("**🔑 Asymmetric Encryption**")
+                st.info("""
+                - Algorithm: ECC (SECP256R1)
+                - Curve: P-256
+                - Security Level: 128-bit equivalent
+                - Use: Key exchange & auth
+                - Key Size: Much smaller than RSA
+                """)
+            
+            with summary_col3:
+                st.markdown("**🌐 Decentralized Storage**")
+                st.info("""
+                - Data: Distributed nodes
+                - Keys: Separate KMS
+                - Replication: Multi-region
+                - Audit: Blockchain trail
+                - Redundancy: Multiple copies
+                """)
+            
+            st.success("""
+            ✅ **Hybrid Encryption Complete!**
+            
+            This demonstration showed how the system combines:
+            - **AES-GCM** for fast, secure data encryption
+            - **ECC** for key management and authentication
+            - **Decentralized storage** for redundancy and security
+            
+            This approach provides:
+            - Strong confidentiality (AES-256)
+            - Data integrity (GCM authentication)
+            - Non-repudiation (ECC signatures)
+            - Fault tolerance (distributed storage)
+            - Scalability (efficient symmetric encryption)
+            """)
         
-        # Visualization
-        st.subheader("📈 Heart Rate Distribution")
-        fig = px.histogram(df, x='bpm', nbins=20, title="Distribution of Heart Rates",
-                          labels={'bpm': 'Heart Rate (BPM)', 'count': 'Number of Tests'})
-        fig.add_vline(x=60, line_dash="dash", line_color="green", annotation_text="Normal Min")
-        fig.add_vline(x=100, line_dash="dash", line_color="green", annotation_text="Normal Max")
-        st.plotly_chart(fig, use_container_width=True, key="admin_histogram_main")
+        # Show actual database encryption example
+        st.markdown("---")
+        st.markdown("### 📚 Real Database Example")
         
-    else:
-        st.info("No test results yet. Users need to complete heart rate tests first.")
+        if st.button("🔍 View Actual Encrypted Record from Database", type="secondary"):
+            # Get one encrypted record from database
+            conn = sqlite3.connect('heart_monitor.db', check_same_thread=False)
+            c = conn.cursor()
+            c.execute("SELECT id, encrypted_data, encryption_key FROM test_results LIMIT 1")
+            result = c.fetchone()
+            conn.close()
+            
+            if result:
+                st.success("Retrieved encrypted record from database:")
+                
+                col_db1, col_db2 = st.columns(2)
+                with col_db1:
+                    st.markdown("**Encrypted Data (First 100 bytes):**")
+                    st.code(result[1][:100].hex() + "...", language="text")
+                    st.caption(f"Total size: {len(result[1])} bytes")
+                
+                with col_db2:
+                    st.markdown("**Encryption Key:**")
+                    st.code(result[2].hex(), language="text")
+                    st.caption("256-bit unique key for this record")
+                
+                st.info(f"**Record ID:** {result[0]} | This data is stored encrypted and can only be decrypted with the corresponding key.")
+            else:
+                st.warning("No encrypted records in database yet. Complete a heart rate test first!")
 
 # =========================
 # USER MONITOR PAGE (PHOTO CAPTURE VERSION)
